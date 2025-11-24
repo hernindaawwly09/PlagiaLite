@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>PlagiaLite — Deteksi Kemiripan Teks</title>
+
+<!-- Modern Card UI styles -->
+<style>
+  :root{
+    --bg: #f3f6ff;
+    --card: #ffffff;
+    --accent1: #6a5bff;
+    --accent2: #836dff;
+    --muted: #6b6b85;
+    --success: #00b894;
+    --highlight: #ffd54f;
+    --radius: 14px;
+    --shadow: 0 8px 24px rgba(24, 24, 50, 0.08);
+    --glass: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.4));
+    font-family: Inter, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+
+  html,body{
+    height:100%;
+    margin:0;
+    background: radial-gradient(1200px 400px at 10% 10%, rgba(106,91,255,0.06), transparent),
+                radial-gradient(900px 300px at 90% 90%, rgba(131,109,255,0.04), transparent),
+                var(--bg);
+    color:#222;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .wrap{
+    max-width: 1000px;
+    margin: 36px auto;
+    padding: 28px;
+  }
+
+  /* Header card */
+  .header-card{
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 22px;
+    display: flex;
+    gap: 18px;
+    align-items: center;
+  }
+
+  .logo{
+    width:64px;
+    height:64px;
+    border-radius: 12px;
+    object-fit:cover;
+    background: linear-gradient(135deg,var(--accent1),var(--accent2));
+    box-shadow: 0 6px 18px rgba(106,91,255,0.12);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  .title-block{
+    flex:1;
+  }
+  h1{
+    margin:0;
+    font-size:20px;
+    color:var(--accent1);
+    letter-spacing: -0.3px;
+  }
+  .subtitle{
+    margin:4px 0 0 0;
+    color:var(--muted);
+    font-size:13px;
+  }
+
+  /* Layout */
+  .main-grid{
+    display:grid;
+    grid-template-columns: 1fr 420px;
+    gap:20px;
+    margin-top:20px;
+  }
+
+  /* Left card - tool */
+  .card{
+    background: var(--card);
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: var(--shadow);
+  }
+
+  .card h2{
+    margin:0 0 12px 0;
+    color: #2b237d;
+    font-size:16px;
+  }
+
+  textarea{
+    width:100%;
+    min-height:130px;
+    resize:vertical;
+    padding:12px;
+    border-radius:10px;
+    border:1px solid #e6e6f9;
+    font-size:14px;
+    color:#222;
+    box-sizing:border-box;
+  }
+
+  .row{
+    display:flex;
+    gap:12px;
+    align-items:center;
+    margin-top:12px;
+  }
+
+  .btn{
+    background: linear-gradient(90deg,var(--accent1),var(--accent2));
+    color:#fff;
+    border: none;
+    padding:10px 16px;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:600;
+    box-shadow: 0 6px 16px rgba(106,91,255,0.12);
+  }
+  .btn.secondary{
+    background: transparent;
+    border: 1px solid #e6e6f9;
+    color: #3a3a58;
+    font-weight:600;
+  }
+
+  #result{
+    margin-top:14px;
+    font-size:18px;
+    font-weight:700;
+    color:#2b237d;
+  }
+
+  #highlighted{
+    margin-top:12px;
+    padding:14px;
+    border-radius:10px;
+    background: linear-gradient(180deg, #fff, #fbfbff);
+    border: 1px solid #f0f0fb;
+    white-space: pre-wrap;
+    line-height:1.6;
+    color:#222;
+  }
+
+  .match{
+    background: var(--highlight);
+    padding: 2px 6px;
+    border-radius:6px;
+    display:inline-block;
+  }
+
+  /* Right panel - manual & tips */
+  .right-panel{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+
+  .manual{
+    padding:16px;
+    border-radius:12px;
+    background: linear-gradient(180deg, rgba(106,91,255,0.03), rgba(131,109,255,0.02));
+    border:1px solid rgba(106,91,255,0.06);
+  }
+
+  .manual h3{
+    margin:0 0 8px 0;
+    color:var(--accent1);
+  }
+  .manual p{ margin:0 0 8px 0; color:var(--muted); font-size:13px;}
+
+  .tip{
+    padding:14px;
+    border-radius:12px;
+    background: #fff;
+    border:1px solid #f0f1fb;
+  }
+
+  .small{
+    font-size:13px;color:var(--muted);
+  }
+
+  /* responsive */
+  @media (max-width:980px){
+    .main-grid{
+      grid-template-columns: 1fr;
+    }
+    .right-panel{order:2}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- Header -->
+  <div class="header-card">
+    <!-- logo: using uploaded local file path (system will transform to URL if needed) -->
+    <img class="logo" src="logoplagialite.png" alt="PlagiaLite logo" />
+    <div class="title-block">
+      <h1>PlagiaLite</h1>
+      <div class="subtitle">Deteksi kemiripan teks cepat & ringan • Cosine Similarity</div>
+    </div>
+    <div style="text-align:right;">
+      <div style="font-size:12px;color:var(--muted)">Versi</div>
+      <div style="font-weight:700;color:#333">v1.0</div>
+    </div>
+  </div>
+
+  <!-- grid: left tool + right manual -->
+  <div class="main-grid" style="margin-top:18px;">
+
+    <!-- LEFT: Tool -->
+    <div class="card">
+      <h2>Bandingkan Dua Teks</h2>
+
+      <label class="small">Teks A (Sumber / Asli)</label>
+      <textarea id="textA" placeholder="Tempatkan teks pertama di sini — contohnya paragraf, abstrak, atau potongan tulisan."></textarea>
+
+      <label class="small">Teks B (Pembanding)</label>
+      <textarea id="textB" placeholder="Masukkan teks pembanding — hasil parafrase, tugas siswa, atau sumber lain."></textarea>
+
+      <div class="row">
+        <button class="btn" onclick="compare()">Deteksi Kemiripan</button>
+        <button class="btn secondary" onclick="clearAll()">Reset</button>
+      </div>
+
+      <div id="result" aria-live="polite"></div>
+
+      <div id="highlighted" aria-live="polite">Hasil highlight akan muncul di sini setelah deteksi.</div>
+
+    </div>
+
+    <!-- RIGHT: Manual + Tips -->
+    <div class="right-panel">
+
+      <div class="manual">
+        <h3>Manual Book PlagiaLite</h3>
+        <p><strong>1. Masukkan Teks A</strong><br> Tulis atau tempel teks yang ingin Anda periksa (mis. naskah asli atau sumber).</p>
+        <p><strong>2. Masukkan Teks B</strong><br> Tulis atau tempel teks pembanding (mis. tugas mahasiswa atau versi lain).</p>
+        <p><strong>3. Klik "Deteksi Kemiripan"</strong><br> Sistem akan menghitung persentase kemiripan (0–100%) menggunakan Cosine Similarity pada token kata.</p>
+        <p><strong>4. Periksa Highlight</strong><br> Kata-kata yang juga ditemukan pada Teks B akan disorot di Teks A (warna kuning).</p>
+        <p class="small"><em>Catatan:</em> Sistem ini menyediakan analisis kemiripan teks secara praktis dan dapat digunakan tanpa koneksi internet. Hasil yang diberikan bersifat indikatif untuk membantu pengguna memperoleh gambaran awal terkait tingkat kesamaan antar paragraf.</p>
+      </div>
+
+      <div class="tip">
+        <strong>Tips Cepat</strong>
+        <ul style="margin:8px 0 0 18px;color:var(--muted);font-size:13px;">
+          <li>Gunakan paragraf yang memiliki struktur jelas dan tidak terlalu singkat agar proses analisis berjalan lebih optimal.</li>
+          <li>Sistem melakukan pencocokan berdasarkan kesamaan kata, sehingga beberapa variasi kata atau sinonim mungkin tidak teridentifikasi.</li>
+          <li>Untuk kebutuhan evaluasi yang lebih menyeluruh, pengguna dapat melakukan perbandingan dokumen menggunakan metode tambahan sesuai kebutuhan.</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Script (cosine similarity + highlight) -->
+<script>
+  // simple tokenizer (latin characters). For Indonesian, consider additional normalizations.
+  function tokenize(text){
+    return String(text || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, " ")
+      .split(/\s+/)
+      .filter(Boolean);
+  }
+
+  function vectorize(tokens){
+    const freq = {};
+    tokens.forEach(t => freq[t] = (freq[t] || 0) + 1);
+    return freq;
+  }
+
+  function cosineSimilarity(a, b){
+    const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+    let dot = 0, magA = 0, magB = 0;
+    keys.forEach(k => {
+      const va = a[k] || 0, vb = b[k] || 0;
+      dot += va * vb;
+      magA += va * va;
+      magB += vb * vb;
+    });
+    const denom = Math.sqrt(magA) * Math.sqrt(magB);
+    if (!denom) return 0;
+    return dot / denom;
+  }
+
+  function highlightTextA(textA, tokensB){
+    if (!textA) return "";
+    // map tokensB for quick lookup
+    const bset = new Set(tokensB);
+    // preserve original words including punctuation spacing by splitting on spaces
+    const parts = textA.split(/\s+/);
+    return parts.map(w => {
+      const clean = w.toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (bset.has(clean) && clean !== "") {
+        return '<span class="match">' + escapeHtml(w) + '</span>';
+      }
+      return escapeHtml(w);
+    }).join(' ');
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  function compare(){
+    const A = document.getElementById('textA').value.trim();
+    const B = document.getElementById('textB').value.trim();
+    const resEl = document.getElementById('result');
+    const outEl = document.getElementById('highlighted');
+
+    if(!A || !B){
+      resEl.textContent = "Isi kedua teks terlebih dahulu.";
+      outEl.innerHTML = "";
+      return;
+    }
+
+    const tA = tokenize(A);
+    const tB = tokenize(B);
+
+    const vA = vectorize(tA);
+    const vB = vectorize(tB);
+
+    const score = cosineSimilarity(vA, vB);
+    const pct = Math.round(score * 100);
+
+    resEl.textContent = "Kemiripan: " + pct + "%";
+
+    outEl.innerHTML = highlightTextA(A, tB);
+  }
+
+  function clearAll(){
+    document.getElementById('textA').value = "";
+    document.getElementById('textB').value = "";
+    document.getElementById('result').textContent = "";
+    document.getElementById('highlighted').textContent = "Hasil highlight akan muncul di sini setelah deteksi.";
+  }
+</script>
+
+</body>
+</html>
